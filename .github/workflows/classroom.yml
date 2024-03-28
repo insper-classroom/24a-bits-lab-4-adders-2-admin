@@ -1,16 +1,41 @@
-name: GitHub Classroom Workflow
-
-on: [push]
-
+name: Autograding Tests
+'on':
+- push
+- workflow_dispatch
+- repository_dispatch
 permissions:
   checks: write
   actions: read
   contents: read
-
 jobs:
-  build:
-    name: Autograding
+  run-autograding-tests:
     runs-on: ubuntu-latest
+    if: github.actor != 'github-classroom[bot]'
     steps:
-      - uses: actions/checkout@v2
-      - uses: education/autograding@v1
+    - name: Checkout code
+      uses: actions/checkout@v4
+    - name: adder2bits
+      id: adder2bits
+      uses: education/autograding-command-grader@v1
+      with:
+        test-name: adder2bits
+        setup-command: sudo -H pip3 install -r requirements.txt
+        command: pytest -k adder2bits
+        timeout: 10
+        max-score: 1
+    - name: adder
+      id: adder
+      uses: education/autograding-command-grader@v1
+      with:
+        test-name: adder
+        setup-command: sudo -H pip3 install pytest
+        command: pytest -k adder
+        timeout: 10
+        max-score: 2
+    - name: Autograding Reporter
+      uses: education/autograding-grading-reporter@v1
+      env:
+        ADDER2BITS_RESULTS: "${{steps.adder2bits.outputs.result}}"
+        ADDER_RESULTS: "${{steps.adder.outputs.result}}"
+      with:
+        runners: adder2bits,adder
